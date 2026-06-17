@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BI Revenue Management</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --border: #e2e4e9;
+    --text: #1a1d23;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --accent2: #059669;
+    --accent3: #d97706;
+    --accent4: #7c3aed;
+    --danger: #dc2626;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* HEADER */
+  .header { background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  .header-sub { font-size: 12px; opacity: 0.75; margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .badge-live { background: #22c55e; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; letter-spacing: 0.5px; }
+
+  /* TABS */
+  .tabs { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; gap: 0; }
+  .tab { padding: 14px 20px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; white-space: nowrap; }
+  .tab:hover { color: var(--accent); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* FILTERS */
+  .filters { background: var(--card); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .filter-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  select, input[type="date"] { border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 12px; color: var(--text); background: var(--bg); cursor: pointer; outline: none; }
+  select:focus, input[type="date"]:focus { border-color: var(--accent); }
+  .btn-reset { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-reset:hover { background: #1d4ed8; }
+
+  /* DATA INPUT SECTION */
+  .data-section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin: 16px 24px; padding: 20px; }
+  .data-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .input-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .input-group label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .input-group input, .input-group select { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 13px; color: var(--text); background: #fff; }
+  .input-group input:focus, .input-group select:focus { border-color: var(--accent); outline: none; }
+  .btn-add { background: var(--accent2); color: #fff; border: none; border-radius: 6px; padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 14px; }
+  .btn-add:hover { background: #047857; }
+  .btn-clear-data { background: transparent; color: var(--danger); border: 1px solid var(--danger); border-radius: 6px; padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 14px; margin-left: 10px; }
+
+  /* CONTENT */
+  .content { padding: 16px 24px; display: none; }
+  .content.active { display: block; }
+
+  /* KPI CARDS */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .kpi-card.blue::before { background: var(--accent); }
+  .kpi-card.green::before { background: var(--accent2); }
+  .kpi-card.amber::before { background: var(--accent3); }
+  .kpi-card.purple::before { background: var(--accent4); }
+  .kpi-card.red::before { background: var(--danger); }
+  .kpi-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .kpi-value { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .kpi-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 12px; margin-top: 4px; }
+  .kpi-badge.up { background: #d1fae5; color: #065f46; }
+  .kpi-badge.down { background: #fee2e2; color: #991b1b; }
+
+  /* CHARTS */
+  .charts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; box-shadow: var(--shadow); }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .chart-sub { font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+  .chart-wrap { position: relative; }
+
+  /* TABLE */
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; box-shadow: var(--shadow); margin-bottom: 20px; overflow-x: auto; }
+  .table-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th { background: var(--bg); padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid #f1f3f5; color: var(--text); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #f8f9ff; }
+
+  /* PICKUP */
+  .pickup-table th, .pickup-table td { text-align: center; }
+  .pickup-table th:first-child, .pickup-table td:first-child { text-align: left; }
+  .cell-high { background: #d1fae5; color: #065f46; border-radius: 4px; padding: 2px 6px; font-weight: 600; }
+  .cell-mid { background: #fef3c7; color: #92400e; border-radius: 4px; padding: 2px 6px; }
+  .cell-low { background: #fee2e2; color: #991b1b; border-radius: 4px; padding: 2px 6px; }
+
+  /* LEGEND */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 40px; color: var(--muted); }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+  /* FOOTER */
+  .footer { background: var(--card); border-top: 1px solid var(--border); padding: 10px 24px; font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; }
+
+  /* LOGIN */
+  #loginOverlay { position:fixed;inset:0;background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);display:flex;align-items:center;justify-content:center;z-index:9999; }
+  .login-box { background:#fff;border-radius:16px;padding:40px 36px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center; }
+  .login-logo { font-size:36px;margin-bottom:8px; }
+  .login-title { font-size:20px;font-weight:800;color:#1e3a5f;margin-bottom:4px; }
+  .login-sub { font-size:13px;color:#6b7280;margin-bottom:28px; }
+  .login-field { margin-bottom:14px;text-align:left; }
+  .login-field label { display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px; }
+  .login-field input { width:100%;border:1px solid #e2e4e9;border-radius:8px;padding:10px 14px;font-size:14px;outline:none;transition:border 0.15s; }
+  .login-field input:focus { border-color:#2563eb; }
+  .login-btn { width:100%;background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;transition:opacity 0.15s; }
+  .login-btn:hover { opacity:0.9; }
+  .login-error { color:#dc2626;font-size:12px;margin-top:10px;min-height:18px; }
+  .login-spinner { display:none;margin-top:12px;font-size:12px;color:#6b7280; }
+
+  /* SYNC STATUS */
+  .sync-badge { display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;cursor:pointer; }
+  .sync-badge.synced { background:rgba(34,197,94,0.15);color:#16a34a; }
+  .sync-badge.syncing { background:rgba(251,191,36,0.15);color:#d97706; }
+  .sync-badge.error { background:rgba(220,38,38,0.15);color:#dc2626; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .spinning { display:inline-block;animation:spin 1s linear infinite; }
+
+  @media (max-width: 600px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">🏨</div>
+    <div class="login-title">Revenue Management</div>
+    <div class="login-sub">Olímpia Park Resort by Enjoy</div>
+    <div class="login-field">
+      <label>Usuário</label>
+      <input type="text" id="loginUser" placeholder="seu usuário" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-spinner" id="loginSpinner">⏳ Carregando dados...</div>
+  </div>
+</div>
+
+<div class="header">
+  <div>
+    <div style="font-size:11px;opacity:0.6;font-weight:500;letter-spacing:1px;text-transform:uppercase;">HOTEL</div>
+    <h1>BI · Revenue Management</h1>
+  </div>
+  <div class="header-right">
+    <span id="totalRecords" style="font-size:12px;opacity:0.8;">0 reservas</span>
+    <span id="syncBadge" class="sync-badge synced" onclick="syncFromSheets()" title="Clique para sincronizar">● Sincronizado</span>
+    <span id="loggedUserBadge" style="font-size:12px;opacity:0.85;background:rgba(255,255,255,0.15);padding:3px 10px;border-radius:12px;"></span>
+    <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;">Sair</button>
+    <button onclick="clearAllDataGlobal()" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.35);border-radius:6px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;" title="Apagar todos os dados inseridos manualmente">🗑 Limpar Tudo</button>
+    <span class="badge-live">● AO VIVO</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('overview')">📊 Visão Geral</div>
+  <div class="tab" onclick="showTab('pickup')">📅 Pickup</div>
+  <div class="tab" onclick="showTab('pace')">🎯 Pace de Vendas</div>
+  <div class="tab" onclick="showTab('canais')">🌐 Canais</div>
+  <div class="tab" onclick="showTab('tipos')">🏨 Tipos de UH</div>
+  <div class="tab" onclick="showTab('reservas')">📋 Reservas</div>
+  <div class="tab" onclick="showTab('inserir')">➕ Inserir Dados</div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters">
+  <div class="filter-group">
+    <span class="filter-label">Hotel:</span>
+    <select id="fHotel" onchange="applyFilters()">
+      <option value="">Todos</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Check-in:</span>
+    <input type="date" id="fDateFrom" onchange="applyFilters()">
+    <span style="color:var(--muted)">até</span>
+    <input type="date" id="fDateTo" onchange="applyFilters()">
+  </div>
+  <div class="filter-group">
+    <span class="filter-label" style="color:#7c3aed;font-weight:700;">📋 Dt. Confirmação:</span>
+    <input type="date" id="fConfFrom" onchange="applyFilters()" style="border-color:#7c3aed;">
+    <span style="color:var(--muted)">até</span>
+    <input type="date" id="fConfTo" onchange="applyFilters()" style="border-color:#7c3aed;">
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Mês CIN:</span>
+    <select id="fMesCin" onchange="applyFilters()">
+      <option value="">Todos</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Canal:</span>
+    <select id="fCanal" onchange="applyFilters()">
+      <option value="">Todos</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Tipo UH:</span>
+    <select id="fTipoUH" onchange="applyFilters()">
+      <option value="">Todos</option>
+    </select>
+  </div>
+  <button class="btn-reset" onclick="resetFilters()">Limpar Filtros</button>
+</div>
+
+<!-- TAB: OVERVIEW -->
+<div id="tab-overview" class="content active">
+  <div class="kpi-grid" id="kpiGrid"></div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Reservas por Mês de Check-in</div>
+      <div class="chart-sub">Total de reservas confirmadas por mês de entrada</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartResByMonth" role="img" aria-label="Reservas por mês"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Receita Bruta por Mês de Check-in</div>
+      <div class="chart-sub">Apenas reservas com valor informado</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartRevByMonth" role="img" aria-label="Receita por mês"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Mix de Canais</div>
+      <div class="chart-sub">Participação de cada canal de distribuição</div>
+      <div class="legend" id="legendCanais"></div>
+      <div class="chart-wrap" style="height:200px"><canvas id="chartCanais" role="img" aria-label="Mix de canais"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Distribuição por Tipo de UH</div>
+      <div class="chart-sub">Número de reservas por categoria de quarto</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartTipoUH" role="img" aria-label="Tipo de UH"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-bottom:20px">
+    <div class="chart-title">Diária Média (ADR) por Mês de Check-in</div>
+    <div class="chart-sub">Receita bruta ÷ número de quartos-noite ocupados</div>
+    <div class="chart-wrap" style="height:200px"><canvas id="chartADR" role="img" aria-label="ADR por mês"></canvas></div>
+  </div>
+</div>
+
+<!-- TAB: PICKUP -->
+<div id="tab-pickup" class="content">
+
+  <!-- Reservas por Dia de Check-in -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:13px;font-weight:600;margin:0;">📆 Reservas por Data de Check-in</h3>
+        <p style="font-size:12px;color:var(--muted);margin-top:3px;">Contagem de reservas e receita acumulada por dia de entrada</p>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+        <div style="display:flex;align-items:center;gap:6px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;padding:6px 10px;">
+          <span style="font-size:11px;font-weight:700;color:#7c3aed;">📋 Dt. Confirmação:</span>
+          <input type="date" id="pickupConfFrom" onchange="renderPickup()" style="border:1px solid #c4b5fd;border-radius:6px;padding:4px 8px;font-size:12px;background:#fff;">
+          <span style="color:var(--muted);font-size:12px">até</span>
+          <input type="date" id="pickupConfTo" onchange="renderPickup()" style="border:1px solid #c4b5fd;border-radius:6px;padding:4px 8px;font-size:12px;background:#fff;">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:6px 10px;">
+          <span style="font-size:11px;font-weight:700;color:#2563eb;">🗓 Check-in:</span>
+          <input type="date" id="pickupDayFrom" onchange="renderPickup()" style="border:1px solid #93c5fd;border-radius:6px;padding:4px 8px;font-size:12px;background:#fff;">
+          <span style="color:var(--muted);font-size:12px">até</span>
+          <input type="date" id="pickupDayTo" onchange="renderPickup()" style="border:1px solid #93c5fd;border-radius:6px;padding:4px 8px;font-size:12px;background:#fff;">
+        </div>
+        <button onclick="document.getElementById('pickupDayFrom').value='';document.getElementById('pickupDayTo').value='';document.getElementById('pickupConfFrom').value='';document.getElementById('pickupConfTo').value='';renderPickup();" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">Limpar</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
+      <table id="dailyCheckinTable" style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead style="position:sticky;top:0;z-index:1;">
+          <tr>
+            <th style="background:var(--bg);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;" onclick="sortDailyTable('date')">Data Check-in ↕</th>
+            <th style="background:var(--bg);padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;" onclick="sortDailyTable('res')">Reservas ↕</th>
+            <th style="background:var(--bg);padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid var(--border);white-space:nowrap;">Bar</th>
+            <th style="background:var(--bg);padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;" onclick="sortDailyTable('rev')">Receita Bruta ↕</th>
+            <th style="background:var(--bg);padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid var(--border);white-space:nowrap;">ADR (R$/noite)</th>
+            <th style="background:var(--bg);padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid var(--border);white-space:nowrap;">Canais</th>
+            <th style="background:var(--bg);padding:8px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid var(--border);white-space:nowrap;">Hóspedes</th>
+          </tr>
+        </thead>
+        <tbody id="tDailyCheckin"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:16px;">
+    <h3 style="font-size:13px;font-weight:600;margin-bottom:14px;">📅 Pickup — Reservas por Mês de Venda × Mês de Check-in</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Cada célula mostra o número de reservas captadas em determinado mês (linhas) para entrada em determinado mês (colunas).</p>
+    <div style="overflow-x:auto;"><table id="pickupTable" class="pickup-table"></table></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Curva de Pickup — Antecedência de Reserva</div>
+    <div class="chart-sub">Distribuição do número de dias entre confirmação e check-in</div>
+    <div class="chart-wrap" style="height:220px"><canvas id="chartPickup" role="img" aria-label="Curva de pickup"></canvas></div>
+  </div>
+</div>
+
+<!-- TAB: PACE DE VENDAS -->
+<div id="tab-pace" class="content">
+
+  <!-- Meta Setup -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;">
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">🎯 Configurar Metas Mensais</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Defina a meta de receita bruta para cada mês. O BI calculará automaticamente o pace necessário por dia para atingi-la.</p>
+    <div id="metasGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;"></div>
+    <button onclick="saveMetas()" style="margin-top:16px;background:#059669;color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;">💾 Salvar Metas</button>
+    <span id="metasSaveMsg" style="margin-left:12px;font-size:12px;"></span>
+  </div>
+
+  <!-- Pace Overview Cards -->
+  <div id="paceCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:16px;"></div>
+
+  <!-- Pace Detail Table -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:13px;font-weight:600;margin:0;">📈 Pace Diário — Venda Necessária por Dia</h3>
+        <p style="font-size:12px;color:var(--muted);margin-top:3px;">Quanto precisa ser vendido por dia a partir de hoje para atingir a meta do mês selecionado</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <label style="font-size:12px;font-weight:600;color:var(--muted);">Mês:</label>
+        <select id="paceMonthSel" onchange="renderPaceDetail()" style="border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:13px;"></select>
+      </div>
+    </div>
+    <div id="paceDetailWrap"></div>
+  </div>
+
+  <!-- Pace Chart -->
+  <div class="chart-card" style="margin-bottom:20px;">
+    <div class="chart-title">Pace Acumulado × Meta — Evolução Mensal</div>
+    <div class="chart-sub">Receita realizada acumulada vs meta de cada mês</div>
+    <div class="chart-wrap" style="height:260px"><canvas id="chartPace"></canvas></div>
+  </div>
+
+</div>
+
+<!-- TAB: CANAIS -->
+<div id="tab-canais" class="content">
+  <div class="kpi-grid" id="kpiCanais"></div>
+  <div class="table-card">
+    <h3>Desempenho por Canal de Distribuição</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Canal</th>
+          <th>Reservas</th>
+          <th>% Participação</th>
+          <th>Receita Bruta (R$)</th>
+          <th>Ticket Médio (R$)</th>
+          <th>Diárias Médias</th>
+          <th>ADR (R$)</th>
+        </tr>
+      </thead>
+      <tbody id="tCanais"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB: TIPOS UH -->
+<div id="tab-tipos" class="content">
+  <div class="table-card">
+    <h3>Desempenho por Tipo de Unidade Habitacional</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo UH</th>
+          <th>Reservas</th>
+          <th>% Participação</th>
+          <th>Receita Bruta (R$)</th>
+          <th>Ticket Médio (R$)</th>
+          <th>Diárias Médias</th>
+          <th>ADR (R$)</th>
+        </tr>
+      </thead>
+      <tbody id="tTipos"></tbody>
+    </table>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Receita por Tipo de UH</div>
+    <div class="chart-wrap" style="height:220px"><canvas id="chartRevTipo" role="img" aria-label="Receita por tipo UH"></canvas></div>
+  </div>
+</div>
+
+<!-- TAB: RESERVAS -->
+<div id="tab-reservas" class="content">
+  <div class="table-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0">Lista de Reservas</h3>
+      <input type="text" id="searchRes" placeholder="Buscar reserva..." oninput="renderReservas()" style="border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:12px;width:220px;">
+    </div>
+    <div style="overflow-x:auto;max-height:520px;overflow-y:auto;">
+      <table>
+        <thead style="position:sticky;top:0;z-index:1;">
+          <tr>
+            <th>Hotel</th>
+            <th>Hóspede</th>
+            <th>Nº Res.</th>
+            <th>Check-in</th>
+            <th>Check-out</th>
+            <th>Confirmação</th>
+            <th>Canal</th>
+            <th>Status</th>
+            <th>Diárias</th>
+            <th>Bruto (R$)</th>
+            <th>ADR (R$)</th>
+            <th>Mês CIN</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody id="tReservas"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: INSERIR -->
+<div id="tab-inserir" class="content">
+  <div class="data-section">
+    <h3>➕ Adicionar Nova Reserva</h3>
+    <div class="input-grid">
+      <div class="input-group">
+        <label>Hotel</label>
+        <select id="nHotel">
+          <option value="OLPR">OLPR</option>
+          <option value="SAPR">SAPR</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Tipo UH</label>
+        <select id="nTipoUH">
+          <option value="LUXO I">LUXO I</option>
+          <option value="LUXO II">LUXO II</option>
+          <option value="MASTER">MASTER</option>
+          <option value="SUPERIOR">SUPERIOR</option>
+          <option value="PNE">PNE</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Check-in</label>
+        <input type="date" id="nCheckin">
+      </div>
+      <div class="input-group">
+        <label>Check-out</label>
+        <input type="date" id="nCheckout">
+      </div>
+      <div class="input-group">
+        <label>Data Confirmação</label>
+        <input type="date" id="nDataConf">
+      </div>
+      <div class="input-group">
+        <label>Canal</label>
+        <select id="nCanal">
+          <option value="Expedia">Expedia</option>
+          <option value="Airbnb">Airbnb</option>
+          <option value="Booking.com">Booking.com</option>
+          <option value="Decolar">Decolar</option>
+          <option value="RDC">RDC</option>
+          <option value="Bancobras">Bancobras</option>
+          <option value="Montreal">Montreal</option>
+          <option value="Site Holify">Site Holify</option>
+          <option value="Central de Vendas">Central de Vendas</option>
+          <option value="Brinde de Sala">Brinde de Sala</option>
+          <option value="Cortesia">Cortesia</option>
+          <option value="Coobrastur">Coobrastur</option>
+          <option value="Portal do Agente">Portal do Agente</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Receita Bruta (R$)</label>
+        <input type="number" id="nBruto" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="input-group">
+        <label>Número da Reserva</label>
+        <input type="text" id="nNumero" placeholder="Ex: 750000">
+      </div>
+    </div>
+    <button class="btn-add" onclick="addReserva()">+ Adicionar Reserva</button>
+    <button class="btn-clear-data" onclick="clearAllData()">🗑 Limpar todos os dados</button>
+    <div id="addMsg" style="margin-top:12px;font-size:13px;"></div>
+  </div>
+
+  <div class="data-section">
+    <h3>📁 Importar CSV</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Importe um arquivo CSV com colunas: hotel, tipo_uh, checkin (YYYY-MM-DD), checkout, data_conf, canal, bruto</p>
+    <input type="file" id="csvFile" accept=".csv" onchange="importCSV()" style="font-size:13px;">
+    <div id="importMsg" style="margin-top:10px;font-size:13px;"></div>
+  </div>
+
+  <div class="data-section">
+    <h3>💾 Exportar Dados Filtrados</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Exporta todas as reservas atualmente filtradas para CSV.</p>
+    <button class="btn-add" onclick="exportCSV()">⬇ Exportar CSV</button>
+  </div>
+</div>
+
+<div class="footer">
+  <span>BI Revenue Management — Atualizado automaticamente</span>
+  <span id="footerCount">0 reservas no total</span>
+</div>
+
+<script>
+// ===================== CONFIG =====================
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyzA0UeQM9lxuldva_5QjKrvqQEEGjqIWdq1SgQ3J5KKc2tb-qtr8TkFMV0YTbX_Q8bMA/exec';
+
+// Usuários e senhas (adicione/remova conforme necessário)
+const USERS = {
+  'andre':    { senha: 'olimpia2024', nome: 'André', role: 'admin' },
+  'revenue':  { senha: 'rev2024',     nome: 'Revenue',  role: 'viewer' },
+  'gerencia': { senha: 'ger2024',     nome: 'Gerência', role: 'viewer' },
+};
+
+let currentUser = null;
+
+// ===================== LOGIN =====================
+function doLogin() {
+  const user = document.getElementById('loginUser').value.trim().toLowerCase();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  const spinner = document.getElementById('loginSpinner');
+
+  if (!USERS[user] || USERS[user].senha !== pass) {
+    errEl.textContent = '⚠ Usuário ou senha incorretos.';
+    document.getElementById('loginPass').value = '';
+    return;
+  }
+
+  currentUser = { ...USERS[user], login: user };
+  errEl.textContent = '';
+  spinner.style.display = 'block';
+  document.querySelector('.login-btn').disabled = true;
+
+  // Load from Google Sheets
+  syncFromSheets(true);
+}
+
+function doLogout() {
+  currentUser = null;
+  ALL_DATA = [...BASE_DATA];
+  EXTRA_DATA = [];
+  filteredData = [...ALL_DATA];
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginSpinner').style.display = 'none';
+  document.querySelector('.login-btn').disabled = false;
+}
+
+// ===================== GOOGLE SHEETS SYNC =====================
+function setSyncBadge(state) {
+  const b = document.getElementById('syncBadge');
+  if (!b) return;
+  if (state === 'syncing') { b.className='sync-badge syncing'; b.innerHTML='<span class="spinning">⟳</span> Sincronizando…'; }
+  else if (state === 'error') { b.className='sync-badge error'; b.innerHTML='⚠ Erro sync'; }
+  else { b.className='sync-badge synced'; b.innerHTML='● Sincronizado'; }
+}
+
+// JSONP helper — único método que funciona abrindo HTML como arquivo local (file://)
+function jsonpRequest(url, callback) {
+  const cbName = '_jsonpCb_' + Date.now();
+  window[cbName] = function(data) {
+    delete window[cbName];
+    document.getElementById(cbName) && document.getElementById(cbName).remove();
+    callback(null, data);
+  };
+  const script = document.createElement('script');
+  script.id = cbName;
+  const sep = url.includes('?') ? '&' : '?';
+  script.src = url + sep + 'callback=' + cbName;
+  script.onerror = () => {
+    delete window[cbName];
+    script.remove();
+    callback(new Error('JSONP failed'));
+  };
+  document.head.appendChild(script);
+  // Timeout de 10s
+  setTimeout(() => {
+    if (window[cbName]) {
+      delete window[cbName];
+      script.remove();
+      callback(new Error('Timeout'));
+    }
+  }, 10000);
+}
+
+function sanitizeDate(val) {
+  if (!val) return '';
+  const s = String(val).trim();
+  // Handles: "2026-10-15T03:00:00.000Z", "2026-10-15 03:00:00", "2026-10-15"
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (m) return m[1];
+  // Handles dd/mm/yyyy
+  const d = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (d) return `${d[3]}-${d[2]}-${d[1]}`;
+  return s;
+}
+
+function parseSheetRows(rows) {
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  if (!rows || rows.length < 2) return [];
+  const headers = rows[0].map(h => String(h).trim().toLowerCase());
+  return rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = row[i] !== undefined ? String(row[i]).trim() : '');
+    const rawCheckin  = sanitizeDate(obj.checkin);
+    const rawCheckout = sanitizeDate(obj.checkout);
+    const rawConf     = sanitizeDate(obj.data_conf) || rawCheckin;
+    if (!rawCheckin || !rawCheckout) return null;
+    const bruto = parseFloat(obj.bruto) || 0;
+    const cin  = new Date(rawCheckin);
+    const cout = new Date(rawCheckout);
+    const conf = new Date(rawConf);
+    const dias = Math.max(0, Math.round((cout - cin) / 86400000));
+    const mesCin    = meses[cin.getMonth()]  + '/' + String(cin.getFullYear()).slice(2);
+    const mesVenda  = meses[conf.getMonth()] + '/' + String(conf.getFullYear()).slice(2);
+    return {
+      hotel: obj.hotel || 'Olímpia Park Resort by Enjoy',
+      tipo_uh: obj.tipo_uh || '',
+      checkin:  rawCheckin,
+      checkout: rawCheckout,
+      data_conf: rawConf,
+      hospede: obj.hospede || '',
+      canal: obj.canal || '',
+      status: obj.status || 'Confirmada',
+      bruto, dias,
+      med_bruto: bruto > 0 && dias > 0 ? bruto / dias : 0,
+      mes_cin: mesCin, mes_venda: mesVenda,
+      ano_cin: cin.getFullYear(),
+      checkin_month: rawCheckin.slice(0, 7),
+      conf_month:    rawConf.slice(0, 7),
+      res_num: obj.res_num || '',
+      res: 1, total_liq: 0, mes_cout: '', ano_venda: mesVenda
+    };
+  }).filter(Boolean);
+}
+
+function syncFromSheets(isLogin = false) {
+  setSyncBadge('syncing');
+  jsonpRequest(APPS_SCRIPT_URL + '?action=read', (err, data) => {
+    if (err || !data || !data.rows) {
+      setSyncBadge('error');
+      if (isLogin) loginFallbackOffline();
+      return;
+    }
+    const sheetData = parseSheetRows(data.rows);
+    EXTRA_DATA = sheetData;
+    ALL_DATA = [...BASE_DATA, ...EXTRA_DATA];
+    filteredData = [...ALL_DATA];
+    populateFilters();
+    renderAll();
+    setSyncBadge('synced');
+    if (isLogin) loginSuccess();
+  });
+}
+
+function loginSuccess() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('loginSpinner').style.display = 'none';
+  document.querySelector('.login-btn').disabled = false;
+  document.getElementById('loggedUserBadge').textContent = '👤 ' + currentUser.nome;
+}
+
+function loginFallbackOffline() {
+  EXTRA_DATA = JSON.parse(localStorage.getItem('rm_all_data') || '[]');
+  ALL_DATA = [...BASE_DATA, ...EXTRA_DATA];
+  filteredData = [...ALL_DATA];
+  populateFilters();
+  renderAll();
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('loginSpinner').style.display = 'none';
+  document.querySelector('.login-btn').disabled = false;
+  document.getElementById('loggedUserBadge').textContent = '👤 ' + currentUser.nome + ' (offline)';
+}
+
+function pushToSheets(rec) {
+  if (!currentUser) return;
+  setSyncBadge('syncing');
+  const row = [
+    rec.hotel, rec.tipo_uh, rec.checkin, rec.checkout, rec.data_conf,
+    rec.hospede||'', rec.canal, rec.status||'Confirmada', rec.bruto,
+    rec.dias, rec.mes_cin, rec.mes_venda, rec.ano_cin,
+    rec.checkin_month, rec.conf_month, rec.res_num||''
+  ];
+  const url = APPS_SCRIPT_URL + '?action=append&row=' + encodeURIComponent(JSON.stringify(row));
+  jsonpRequest(url, (err, data) => {
+    if (err) { setSyncBadge('error'); return; }
+    setSyncBadge('synced');
+    setTimeout(() => syncFromSheets(), 1000);
+  });
+}
+
+function deleteFromSheets(resNum, checkin) {
+  if (!currentUser) return;
+  setSyncBadge('syncing');
+  const url = APPS_SCRIPT_URL + '?action=delete&res_num=' + encodeURIComponent(resNum||'') + '&checkin=' + encodeURIComponent(checkin||'');
+  jsonpRequest(url, (err) => {
+    setSyncBadge(err ? 'error' : 'synced');
+    if (!err) setTimeout(() => syncFromSheets(), 1000);
+  });
+}
+
+// Auto-sync a cada 2 minutos quando logado
+setInterval(() => { if (currentUser) syncFromSheets(); }, 120000);
+
+// ===================== DATA =====================
+const BASE_DATA = [];
+
+// Dados extras adicionados pelo usuário ficam no localStorage
+let EXTRA_DATA = JSON.parse(localStorage.getItem('rm_all_data') || '[]');
+let ALL_DATA = [...BASE_DATA, ...EXTRA_DATA];
+let filteredData = [...ALL_DATA];
+
+// Chart instances
+let chartInstances = {};
+
+// ===================== FILTERS =====================
+function populateFilters() {
+  const hotels = [...new Set(ALL_DATA.map(d => d.hotel))].sort();
+  const canais = [...new Set(ALL_DATA.map(d => d.canal))].sort();
+  const tipos = [...new Set(ALL_DATA.map(d => d.tipo_uh))].sort();
+  const meses = [...new Set(ALL_DATA.map(d => d.mes_cin))].filter(Boolean);
+  const mesSorted = meses.sort((a,b) => {
+    const order = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const [ma,ya] = a.split('/'); const [mb,yb] = b.split('/');
+    return ya !== yb ? ya - yb : order.indexOf(ma) - order.indexOf(mb);
+  });
+
+  const fHotel = document.getElementById('fHotel');
+  const fCanal = document.getElementById('fCanal');
+  const fTipoUH = document.getElementById('fTipoUH');
+  const fMesCin = document.getElementById('fMesCin');
+
+  [fHotel, fCanal, fTipoUH, fMesCin].forEach(s => { while(s.options.length > 1) s.remove(1); });
+  hotels.forEach(h => fHotel.add(new Option(h, h)));
+  canais.forEach(c => fCanal.add(new Option(c, c)));
+  tipos.forEach(t => fTipoUH.add(new Option(t, t)));
+  mesSorted.forEach(m => fMesCin.add(new Option(m, m)));
+}
+
+function applyFilters() {
+  const hotel = document.getElementById('fHotel').value;
+  const dateFrom = document.getElementById('fDateFrom').value;
+  const dateTo = document.getElementById('fDateTo').value;
+  const confFrom = document.getElementById('fConfFrom').value;
+  const confTo = document.getElementById('fConfTo').value;
+  const mesCin = document.getElementById('fMesCin').value;
+  const canal = document.getElementById('fCanal').value;
+  const tipoUH = document.getElementById('fTipoUH').value;
+
+  filteredData = ALL_DATA.filter(d => {
+    if (hotel && d.hotel !== hotel) return false;
+    if (dateFrom && d.checkin < dateFrom) return false;
+    if (dateTo && d.checkin > dateTo) return false;
+    if (confFrom && d.data_conf < confFrom) return false;
+    if (confTo && d.data_conf > confTo) return false;
+    if (mesCin && d.mes_cin !== mesCin) return false;
+    if (canal && d.canal !== canal) return false;
+    if (tipoUH && d.tipo_uh !== tipoUH) return false;
+    return true;
+  });
+
+  renderAll();
+}
+
+function resetFilters() {
+  document.getElementById('fHotel').value = '';
+  document.getElementById('fDateFrom').value = '';
+  document.getElementById('fDateTo').value = '';
+  document.getElementById('fConfFrom').value = '';
+  document.getElementById('fConfTo').value = '';
+  document.getElementById('fMesCin').value = '';
+  document.getElementById('fCanal').value = '';
+  document.getElementById('fTipoUH').value = '';
+  filteredData = [...ALL_DATA];
+  renderAll();
+}
+
+// ===================== UTILS =====================
+function fmt(n, dec=0) {
+  if (isNaN(n) || n === null) return '—';
+  return n.toLocaleString('pt-BR', {minimumFractionDigits: dec, maximumFractionDigits: dec});
+}
+function fmtR(n) {
+  if (isNaN(n) || n === null || n === 0) return '—';
+  return 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+function daysBetween(a, b) {
+  const da = new Date(a), db = new Date(b);
+  return Math.round((db - da) / 86400000);
+}
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+const COLORS = ['#2563eb','#059669','#d97706','#7c3aed','#dc2626','#0891b2','#84cc16','#f59e0b','#8b5cf6','#ef4444','#14b8a6','#f97316'];
+
+// ===================== KPIs =====================
+function renderKPIs() {
+  const total = filteredData.length;
+  const withRev = filteredData.filter(d => d.bruto > 0);
+  const totalRev = withRev.reduce((s,d) => s + d.bruto, 0);
+  const totalNights = filteredData.reduce((s,d) => s + (d.dias || 0), 0);
+  const avgNights = total > 0 ? filteredData.reduce((s,d) => s + (d.dias || 0), 0) / total : 0;
+  const adr = totalNights > 0 ? totalRev / totalNights : 0;
+  const avgTicket = withRev.length > 0 ? totalRev / withRev.length : 0;
+  const leadTimes = filteredData.map(d => daysBetween(d.data_conf, d.checkin)).filter(x => x >= 0 && x < 500);
+  const avgLead = leadTimes.length > 0 ? leadTimes.reduce((a,b)=>a+b,0)/leadTimes.length : 0;
+
+  const canais = {};
+  filteredData.forEach(d => { canais[d.canal] = (canais[d.canal]||0)+1; });
+  const topCanal = Object.entries(canais).sort((a,b)=>b[1]-a[1])[0];
+
+  document.getElementById('totalRecords').textContent = total + ' reservas';
+  document.getElementById('footerCount').textContent = ALL_DATA.length + ' reservas no total';
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi-card blue"><div class="kpi-label">Total de Reservas</div><div class="kpi-value">${fmt(total)}</div><div class="kpi-sub">Reservas filtradas</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Receita Bruta</div><div class="kpi-value" style="font-size:20px">${totalRev > 0 ? 'R$ '+fmt(totalRev,0) : '—'}</div><div class="kpi-sub">${withRev.length} reservas c/ valor</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">ADR — Diária Média</div><div class="kpi-value" style="font-size:20px">${adr > 0 ? 'R$ '+fmt(adr,2) : '—'}</div><div class="kpi-sub">Receita ÷ quartos-noite</div></div>
+    <div class="kpi-card purple"><div class="kpi-label">Ticket Médio</div><div class="kpi-value" style="font-size:20px">${avgTicket > 0 ? 'R$ '+fmt(avgTicket,2) : '—'}</div><div class="kpi-sub">Por reserva c/ valor</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Diárias Médias</div><div class="kpi-value">${fmt(avgNights,1)}</div><div class="kpi-sub">Noites por reserva</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Total Noites</div><div class="kpi-value">${fmt(totalNights)}</div><div class="kpi-sub">Quartos-noite ocupados</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">Antecedência Média</div><div class="kpi-value">${fmt(avgLead,0)}<span style="font-size:14px"> dias</span></div><div class="kpi-sub">Lead time de reserva</div></div>
+    <div class="kpi-card purple"><div class="kpi-label">Canal Principal</div><div class="kpi-value" style="font-size:16px">${topCanal ? topCanal[0] : '—'}</div><div class="kpi-sub">${topCanal ? fmt(topCanal[1]) + ' reservas' : ''}</div></div>
+  `;
+}
+
+// ===================== CHARTS =====================
+function renderOverviewCharts() {
+  // By Month
+  const byMonth = {};
+  const revByMonth = {};
+  filteredData.forEach(d => {
+    const m = d.checkin_month || d.checkin.slice(0,7);
+    byMonth[m] = (byMonth[m]||0) + 1;
+    revByMonth[m] = (revByMonth[m]||0) + (d.bruto||0);
+  });
+  const months = Object.keys(byMonth).sort();
+  const monthLabels = months.map(m => {
+    const [y,mo] = m.split('-');
+    const names = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    return names[parseInt(mo)] + '/' + y.slice(2);
+  });
+
+  destroyChart('chartResByMonth');
+  chartInstances['chartResByMonth'] = new Chart(document.getElementById('chartResByMonth'), {
+    type: 'bar',
+    data: { labels: monthLabels, datasets: [{ label: 'Reservas', data: months.map(m => byMonth[m]||0), backgroundColor: '#2563eb', borderRadius: 4 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{precision:0}}} }
+  });
+
+  destroyChart('chartRevByMonth');
+  chartInstances['chartRevByMonth'] = new Chart(document.getElementById('chartRevByMonth'), {
+    type: 'bar',
+    data: { labels: monthLabels, datasets: [{ label: 'Receita (R$)', data: months.map(m => Math.round(revByMonth[m]||0)), backgroundColor: '#059669', borderRadius: 4 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{callback: v => 'R$'+v.toLocaleString('pt-BR')}}} }
+  });
+
+  // Canais
+  const canalData = {};
+  filteredData.forEach(d => { canalData[d.canal] = (canalData[d.canal]||0)+1; });
+  const canalEntries = Object.entries(canalData).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const canalTotal = canalEntries.reduce((s,[,v])=>s+v,0);
+  const legendEl = document.getElementById('legendCanais');
+  legendEl.innerHTML = canalEntries.map(([k,v],i) =>
+    `<div class="legend-item"><span class="legend-dot" style="background:${COLORS[i]}"></span>${k} (${Math.round(v/canalTotal*100)}%)</div>`
+  ).join('');
+
+  destroyChart('chartCanais');
+  chartInstances['chartCanais'] = new Chart(document.getElementById('chartCanais'), {
+    type: 'doughnut',
+    data: { labels: canalEntries.map(([k])=>k), datasets: [{ data: canalEntries.map(([,v])=>v), backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+  });
+
+  // Tipo UH
+  const tipoData = {};
+  filteredData.forEach(d => { tipoData[d.tipo_uh] = (tipoData[d.tipo_uh]||0)+1; });
+  const tipoEntries = Object.entries(tipoData).sort((a,b)=>b[1]-a[1]);
+
+  destroyChart('chartTipoUH');
+  chartInstances['chartTipoUH'] = new Chart(document.getElementById('chartTipoUH'), {
+    type: 'bar',
+    data: { labels: tipoEntries.map(([k])=>k), datasets: [{ label: 'Reservas', data: tipoEntries.map(([,v])=>v), backgroundColor: COLORS.slice(3,3+tipoEntries.length), borderRadius: 4 }] },
+    options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}} }
+  });
+
+  // ADR
+  const adrMonth = {};
+  const nightsMonth = {};
+  filteredData.forEach(d => {
+    if (d.bruto > 0 && d.dias > 0) {
+      const m = d.checkin_month || d.checkin.slice(0,7);
+      adrMonth[m] = (adrMonth[m]||0) + d.bruto;
+      nightsMonth[m] = (nightsMonth[m]||0) + d.dias;
+    }
+  });
+  destroyChart('chartADR');
+  chartInstances['chartADR'] = new Chart(document.getElementById('chartADR'), {
+    type: 'line',
+    data: { labels: monthLabels, datasets: [{ label: 'ADR (R$)', data: months.map(m => nightsMonth[m] ? Math.round(adrMonth[m]/nightsMonth[m]) : null), borderColor:'#d97706', backgroundColor:'rgba(217,119,6,0.08)', borderWidth:2, tension:0.4, fill:true, pointRadius:4, spanGaps:true }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false, ticks:{callback: v => 'R$'+v.toLocaleString('pt-BR')}}} }
+  });
+}
+
+// ===================== PICKUP =====================
+let dailySortKey = 'date';
+let dailySortAsc = true;
+
+function sortDailyTable(key) {
+  if (dailySortKey === key) dailySortAsc = !dailySortAsc;
+  else { dailySortKey = key; dailySortAsc = key === 'date'; }
+  renderPickup();
+}
+
+function renderPickup() {
+  // --- Daily Check-in Table ---
+  const dayFrom = document.getElementById('pickupDayFrom')?.value || '';
+  const dayTo = document.getElementById('pickupDayTo')?.value || '';
+  const confFrom = document.getElementById('pickupConfFrom')?.value || '';
+  const confTo = document.getElementById('pickupConfTo')?.value || '';
+
+  const dayMap = {};
+  filteredData.forEach(d => {
+    const dt = d.checkin;
+    if (!dt) return;
+    if (dayFrom && dt < dayFrom) return;
+    if (dayTo && dt > dayTo) return;
+    if (confFrom && d.data_conf < confFrom) return;
+    if (confTo && d.data_conf > confTo) return;
+    if (!dayMap[dt]) dayMap[dt] = { res: 0, rev: 0, nights: 0, canais: new Set(), hospedes: [] };
+    dayMap[dt].res++;
+    dayMap[dt].rev += d.bruto || 0;
+    dayMap[dt].nights += d.dias || 0;
+    dayMap[dt].canais.add(d.canal);
+    if (d.hospede) dayMap[dt].hospedes.push(d.hospede);
+  });
+
+  let dayEntries = Object.entries(dayMap);
+  const maxRes = Math.max(...dayEntries.map(([,v])=>v.res), 1);
+
+  dayEntries.sort((a,b) => {
+    if (dailySortKey === 'date') return dailySortAsc ? a[0].localeCompare(b[0]) : b[0].localeCompare(a[0]);
+    if (dailySortKey === 'res')  return dailySortAsc ? a[1].res - b[1].res : b[1].res - a[1].res;
+    if (dailySortKey === 'rev')  return dailySortAsc ? a[1].rev - b[1].rev : b[1].rev - a[1].rev;
+    return 0;
+  });
+
+  const fmtDate = s => {
+    const [y,m,d] = s.split('-');
+    const days = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const dow = days[new Date(s).getDay()];
+    return `${d}/${m}/${y} <span style="color:var(--muted);font-size:11px">(${dow})</span>`;
+  };
+
+  const totalDayRes = dayEntries.reduce((s,[,v])=>s+v.res,0);
+  const totalDayRev = dayEntries.reduce((s,[,v])=>s+v.rev,0);
+
+  // Group days by month (YYYY-MM) for subtotals
+  const monthGroups = {};
+  dayEntries.forEach(([dt, v]) => {
+    const monthKey = dt.slice(0,7);
+    if (!monthGroups[monthKey]) monthGroups[monthKey] = { res:0, rev:0, days:0 };
+    monthGroups[monthKey].res += v.res;
+    monthGroups[monthKey].rev += v.rev;
+    monthGroups[monthKey].days++;
+  });
+  const monthNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const fmtMonth = key => {
+    const [y,m] = key.split('-');
+    return `${monthNames[parseInt(m)-1]}/${y.slice(2)}`;
+  };
+
+  // Build rows grouped by month with subtotal rows
+  let rows = '';
+  if (dayEntries.length === 0) {
+    rows = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma reserva encontrada para o período</td></tr>`;
+  } else {
+    let lastMonth = null;
+    // Sort by date always for grouping, then apply user sort within groups only when not date-sorted
+    const groupedEntries = dailySortKey === 'date'
+      ? dayEntries
+      : [...dayEntries].sort((a,b) => a[0].localeCompare(b[0]));
+
+    groupedEntries.forEach(([dt, v]) => {
+      const monthKey = dt.slice(0,7);
+
+      // Month subtotal header row (before first day of each new month)
+      if (monthKey !== lastMonth) {
+        lastMonth = monthKey;
+        const mg = monthGroups[monthKey];
+        const avgTicket = mg.res > 0 && mg.rev > 0 ? mg.rev / mg.res : 0;
+        rows += `<tr style="background:linear-gradient(90deg,#1e3a5f,#2563eb);color:#fff;">
+          <td colspan="3" style="padding:7px 12px;font-size:12px;font-weight:700;letter-spacing:0.3px;">
+            📅 ${fmtMonth(monthKey)} — ${mg.days} dias com reservas
+          </td>
+          <td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:700;">
+            ${mg.rev > 0 ? fmtR(mg.rev) : '—'}
+          </td>
+          <td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:700;" title="Média de receita por reserva no mês">
+            Ø ${avgTicket > 0 ? fmtR(avgTicket) : '—'}
+          </td>
+          <td style="padding:7px 12px;text-align:center;font-size:12px;font-weight:700;">${mg.res} res.</td>
+          <td></td>
+        </tr>`;
+      }
+
+      // Day row
+      const pct = Math.round(v.res / maxRes * 100);
+      const adr = v.nights > 0 && v.rev > 0 ? v.rev / v.nights : 0;
+      const canaisStr = [...v.canais].join(', ');
+      const hospStr = v.hospedes.slice(0,2).join('; ') + (v.hospedes.length > 2 ? ` +${v.hospedes.length-2}` : '');
+      const barColor = pct > 66 ? '#059669' : pct > 33 ? '#d97706' : '#2563eb';
+      rows += `<tr style="border-bottom:1px solid #f1f3f5;" onmouseover="this.style.background='#f8f9ff'" onmouseout="this.style.background=''">
+        <td style="padding:9px 12px;font-weight:600;padding-left:20px">${fmtDate(dt)}</td>
+        <td style="padding:9px 12px;text-align:center;">
+          <span style="background:#e0e7ff;color:#3730a3;border-radius:12px;padding:2px 10px;font-weight:700;font-size:13px">${v.res}</span>
+        </td>
+        <td style="padding:9px 12px;min-width:100px;">
+          <div style="background:#f1f3f5;border-radius:4px;height:10px;overflow:hidden;">
+            <div style="background:${barColor};height:100%;width:${pct}%;border-radius:4px;transition:width 0.3s"></div>
+          </div>
+        </td>
+        <td style="padding:9px 12px;text-align:right;font-weight:600">${v.rev > 0 ? fmtR(v.rev) : '—'}</td>
+        <td style="padding:9px 12px;text-align:right;color:var(--muted)">${adr > 0 ? fmtR(adr) : '—'}</td>
+        <td style="padding:9px 12px;text-align:center;font-size:11px;color:var(--muted)" title="${canaisStr}">${canaisStr.length > 30 ? canaisStr.slice(0,28)+'…' : canaisStr}</td>
+        <td style="padding:9px 12px;text-align:center;font-size:11px;color:var(--muted)" title="${v.hospedes.join('; ')}">${hospStr||'—'}</td>
+      </tr>`;
+    });
+
+    // Grand total row
+    const avgGeral = totalDayRes > 0 && totalDayRev > 0 ? totalDayRev / totalDayRes : 0;
+    rows += `<tr style="background:#f8f9ff;font-weight:700;border-top:2px solid var(--border)">
+      <td style="padding:9px 12px">TOTAL (${dayEntries.length} dias)</td>
+      <td style="padding:9px 12px;text-align:center">${totalDayRes}</td>
+      <td></td>
+      <td style="padding:9px 12px;text-align:right">${totalDayRev > 0 ? fmtR(totalDayRev) : '—'}</td>
+      <td style="padding:9px 12px;text-align:right" title="Média geral por reserva">Ø ${avgGeral > 0 ? fmtR(avgGeral) : '—'}</td>
+      <td colspan="2"></td>
+    </tr>`;
+  }
+
+  document.getElementById('tDailyCheckin').innerHTML = rows;
+
+  // --- Pickup Matrix ---
+  const mesOrder = ['jan/25','fev/25','mar/25','abr/25','mai/25','jun/25','jul/25','ago/25','set/25','out/25','nov/25','dez/25','jan/26','fev/26','mar/26','abr/26','mai/26','jun/26','jul/26','ago/26','set/26','out/26','nov/26','dez/26','jan/27','fev/27'];
+  const vendas = [...new Set(filteredData.map(d=>d.mes_venda))].filter(Boolean);
+  const cins = [...new Set(filteredData.map(d=>d.mes_cin))].filter(Boolean);
+  const sortFn = (a,b) => mesOrder.indexOf(a) - mesOrder.indexOf(b);
+  const vendasSorted = vendas.sort(sortFn).slice(-8);
+  const cinsSorted = cins.sort(sortFn).slice(-10);
+
+  const matrix = {};
+  filteredData.forEach(d => {
+    const k = (d.mes_venda||'')+'__'+(d.mes_cin||'');
+    matrix[k] = (matrix[k]||0) + 1;
+  });
+  const colTotals = {};
+  cinsSorted.forEach(c => { colTotals[c] = vendasSorted.reduce((s,v)=>s+(matrix[v+'__'+c]||0),0); });
+
+  let html = '<thead><tr><th>Mês Venda ↓ / CIN →</th>';
+  cinsSorted.forEach(c => html += `<th>${c}</th>`);
+  html += '<th>Total</th></tr></thead><tbody>';
+  vendasSorted.forEach(v => {
+    const rowTotal = cinsSorted.reduce((s,c)=>s+(matrix[v+'__'+c]||0),0);
+    html += `<tr><td><strong>${v}</strong></td>`;
+    cinsSorted.forEach(c => {
+      const val = matrix[v+'__'+c]||0;
+      const cls = val > 20 ? 'cell-high' : val > 5 ? 'cell-mid' : val > 0 ? 'cell-low' : '';
+      html += `<td>${val > 0 ? `<span class="${cls}">${val}</span>` : '<span style="color:#ccc">—</span>'}</td>`;
+    });
+    html += `<td><strong>${rowTotal}</strong></td></tr>`;
+  });
+  html += '<tr style="background:#f8f9ff"><td><strong>TOTAL</strong></td>';
+  cinsSorted.forEach(c => { const t = colTotals[c]||0; html += `<td><strong>${t||'—'}</strong></td>`; });
+  html += `<td><strong>${Object.values(colTotals).reduce((a,b)=>a+b,0)}</strong></td></tr>`;
+  html += '</tbody>';
+  document.getElementById('pickupTable').innerHTML = html;
+
+  // Pickup curve
+  const leads = {};
+  filteredData.forEach(d => {
+    const lt = daysBetween(d.data_conf, d.checkin);
+    if (lt >= 0 && lt <= 365) {
+      const bucket = lt <= 7 ? '0-7d' : lt <= 14 ? '8-14d' : lt <= 30 ? '15-30d' : lt <= 60 ? '31-60d' : lt <= 90 ? '61-90d' : lt <= 180 ? '91-180d' : '>180d';
+      leads[bucket] = (leads[bucket]||0)+1;
+    }
+  });
+  const buckets = ['0-7d','8-14d','15-30d','31-60d','61-90d','91-180d','>180d'];
+  destroyChart('chartPickup');
+  chartInstances['chartPickup'] = new Chart(document.getElementById('chartPickup'), {
+    type: 'bar',
+    data: { labels: buckets, datasets: [{ label: 'Reservas', data: buckets.map(b=>leads[b]||0), backgroundColor: buckets.map((_,i)=>COLORS[i]), borderRadius: 4 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{precision:0}}} }
+  });
+}
+
+// ===================== CANAIS =====================
+function renderCanais() {
+  const total = filteredData.length;
+  const canalMap = {};
+  filteredData.forEach(d => {
+    if (!canalMap[d.canal]) canalMap[d.canal] = {res:0, rev:0, nights:0};
+    canalMap[d.canal].res++;
+    canalMap[d.canal].rev += d.bruto||0;
+    canalMap[d.canal].nights += d.dias||0;
+  });
+  const entries = Object.entries(canalMap).sort((a,b)=>b[1].res-a[1].res);
+
+  const kpiEl = document.getElementById('kpiCanais');
+  kpiEl.innerHTML = `
+    <div class="kpi-card blue"><div class="kpi-label">Canais Ativos</div><div class="kpi-value">${entries.length}</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Principal Canal</div><div class="kpi-value" style="font-size:16px">${entries[0]?.[0]||'—'}</div><div class="kpi-sub">${entries[0] ? fmt(entries[0][1].res) + ' reservas' : ''}</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">% Canal Top</div><div class="kpi-value">${entries[0] ? fmt(entries[0][1].res/total*100,1)+'%' : '—'}</div></div>
+  `;
+
+  const tbody = document.getElementById('tCanais');
+  tbody.innerHTML = entries.map(([canal,d]) => {
+    const adr = d.nights > 0 && d.rev > 0 ? d.rev/d.nights : 0;
+    const avgT = d.res > 0 && d.rev > 0 ? d.rev/d.res : 0;
+    const avgN = d.res > 0 ? d.nights/d.res : 0;
+    return `<tr>
+      <td><strong>${canal}</strong></td>
+      <td>${fmt(d.res)}</td>
+      <td>${fmt(d.res/total*100,1)}%</td>
+      <td>${d.rev > 0 ? fmtR(d.rev) : '—'}</td>
+      <td>${avgT > 0 ? fmtR(avgT) : '—'}</td>
+      <td>${fmt(avgN,1)}</td>
+      <td>${adr > 0 ? fmtR(adr) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ===================== TIPOS =====================
+function renderTipos() {
+  const total = filteredData.length;
+  const tipoMap = {};
+  filteredData.forEach(d => {
+    if (!tipoMap[d.tipo_uh]) tipoMap[d.tipo_uh] = {res:0, rev:0, nights:0};
+    tipoMap[d.tipo_uh].res++;
+    tipoMap[d.tipo_uh].rev += d.bruto||0;
+    tipoMap[d.tipo_uh].nights += d.dias||0;
+  });
+  const entries = Object.entries(tipoMap).sort((a,b)=>b[1].res-a[1].res);
+
+  document.getElementById('tTipos').innerHTML = entries.map(([tipo,d]) => {
+    const adr = d.nights > 0 && d.rev > 0 ? d.rev/d.nights : 0;
+    const avgT = d.res > 0 && d.rev > 0 ? d.rev/d.res : 0;
+    const avgN = d.res > 0 ? d.nights/d.res : 0;
+    return `<tr>
+      <td><strong>${tipo}</strong></td>
+      <td>${fmt(d.res)}</td>
+      <td>${fmt(d.res/total*100,1)}%</td>
+      <td>${d.rev > 0 ? fmtR(d.rev) : '—'}</td>
+      <td>${avgT > 0 ? fmtR(avgT) : '—'}</td>
+      <td>${fmt(avgN,1)}</td>
+      <td>${adr > 0 ? fmtR(adr) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  destroyChart('chartRevTipo');
+  chartInstances['chartRevTipo'] = new Chart(document.getElementById('chartRevTipo'), {
+    type: 'bar',
+    data: { labels: entries.map(([k])=>k), datasets: [{label:'Reservas', data: entries.map(([,v])=>v.res), backgroundColor: COLORS.slice(0,entries.length), borderRadius:4}] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+  });
+}
+
+// ===================== RESERVAS TABLE =====================
+function renderReservas() {
+  const q = (document.getElementById('searchRes').value||'').toLowerCase();
+  const rows = filteredData.filter(d =>
+    !q || d.hotel.toLowerCase().includes(q) || d.tipo_uh.toLowerCase().includes(q) || d.canal.toLowerCase().includes(q) || d.checkin.includes(q) || d.mes_cin.toLowerCase().includes(q)
+  ).slice(0, 200);
+
+  document.getElementById('tReservas').innerHTML = rows.map((d,i) => {
+    const adr = d.dias > 0 && d.bruto > 0 ? d.bruto/d.dias : 0;
+    const statusColor = d.status === 'Confirmada' ? '#d1fae5;color:#065f46' : d.status === 'Alterada' ? '#fef3c7;color:#92400e' : '#fee2e2;color:#991b1b';
+    return `<tr>
+      <td><span style="background:#e0e7ff;color:#3730a3;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:600">${d.hotel||'—'}</span></td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.hospede||''}">${d.hospede||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${d.res_num||'—'}</td>
+      <td>${d.checkin}</td>
+      <td>${d.checkout}</td>
+      <td>${d.data_conf}</td>
+      <td>${d.canal}</td>
+      <td><span style="background:${statusColor};border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600">${d.status||'—'}</span></td>
+      <td style="text-align:center">${d.dias}</td>
+      <td>${d.bruto > 0 ? fmtR(d.bruto) : '—'}</td>
+      <td>${adr > 0 ? fmtR(adr) : '—'}</td>
+      <td>${d.mes_cin||'—'}</td>
+      <td><button onclick="deleteRow(${ALL_DATA.indexOf(d)})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:12px;padding:2px 6px;border-radius:4px;" title="Remover">✕</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="13" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma reserva encontrada</td></tr>';
+}
+
+// ===================== ADD / DELETE =====================
+function addReserva() {
+  const hotel = document.getElementById('nHotel').value;
+  const tipoUH = document.getElementById('nTipoUH').value;
+  const checkin = document.getElementById('nCheckin').value;
+  const checkout = document.getElementById('nCheckout').value;
+  const dataConf = document.getElementById('nDataConf').value;
+  const canal = document.getElementById('nCanal').value;
+  const bruto = parseFloat(document.getElementById('nBruto').value)||0;
+  const numero = document.getElementById('nNumero').value;
+
+  if (!checkin || !checkout) {
+    document.getElementById('addMsg').innerHTML = '<span style="color:#dc2626">⚠ Preencha pelo menos check-in e check-out.</span>';
+    return;
+  }
+  const dias = Math.max(0, daysBetween(checkin, checkout));
+  const cin = new Date(checkin);
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const mesCin = meses[cin.getMonth()] + '/' + String(cin.getFullYear()).slice(2);
+  const confDate = dataConf || new Date().toISOString().slice(0,10);
+  const confD = new Date(confDate);
+  const mesVenda = meses[confD.getMonth()] + '/' + String(confD.getFullYear()).slice(2);
+
+  const rec = { hotel, tipo_uh:tipoUH, checkin, checkout, data_conf:confDate, status:'Confirmada', total_liq:0, bruto, med_bruto:bruto>0&&dias>0?bruto/dias:0, dias, mes_venda:mesVenda, ano_venda:mesVenda, mes_cin:mesCin, mes_cout:'', ano_cin:cin.getFullYear(), checkin_month:checkin.slice(0,7), conf_month:confDate.slice(0,7), canal, hospede: document.getElementById('nHospede')?.value||'', res_num: numero, res:1 };
+
+  ALL_DATA.push(rec);
+  EXTRA_DATA.push(rec);
+  saveData();
+  filteredData = [...ALL_DATA];
+  populateFilters();
+  renderAll();
+  document.getElementById('addMsg').innerHTML = '<span style="color:#d97706">⏳ Salvando na planilha…</span>';
+  pushToSheets(rec);
+  ['nCheckin','nCheckout','nDataConf','nBruto','nNumero'].forEach(id => document.getElementById(id).value = '');
+  setTimeout(() => { const m = document.getElementById('addMsg'); if(m) m.innerHTML='<span style="color:#059669">✓ Reserva salva na planilha!</span>'; }, 1500);
+}
+
+function saveData() {
+  localStorage.setItem('rm_all_data', JSON.stringify(EXTRA_DATA));
+}
+
+function deleteRow(idx) {
+  const rec = ALL_DATA[idx];
+  if (!confirm(`Remover reserva de ${rec.hospede||rec.checkin}?`)) return;
+  const eIdx = EXTRA_DATA.indexOf(rec);
+  if (eIdx >= 0) {
+    EXTRA_DATA.splice(eIdx, 1);
+    saveData();
+    deleteFromSheets(rec.res_num, rec.checkin);
+  }
+  ALL_DATA.splice(idx, 1);
+  filteredData = filteredData.filter(d => d !== rec);
+  populateFilters();
+  renderAll();
+}
+
+function clearAllData() {
+  if (!confirm('Isso vai remover TODOS os dados adicionados manualmente ou via CSV (os dados originais da base serão mantidos). Deseja continuar?')) return;
+  EXTRA_DATA = [];
+  ALL_DATA = [...BASE_DATA];
+  filteredData = [...ALL_DATA];
+  localStorage.removeItem('rm_all_data');
+  populateFilters();
+  renderAll();
+  const msg = document.getElementById('addMsg');
+  if (msg) msg.innerHTML = '<span style="color:#dc2626">✓ Dados extras removidos. Base original restaurada.</span>';
+}
+
+function clearAllDataGlobal() {
+  clearAllData();
+}
+
+// ===================== CSV =====================
+function importCSV() {
+  const file = document.getElementById('csvFile').files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    let count = 0;
+    lines.slice(1).forEach(line => {
+      const cols = line.split(',');
+      const obj = {};
+      headers.forEach((h,i) => obj[h] = (cols[i]||'').trim());
+      if (!obj.checkin || !obj.checkout) return;
+      const dias = Math.max(0, daysBetween(obj.checkin, obj.checkout));
+      const cin = new Date(obj.checkin);
+      const mesCin = meses[cin.getMonth()]+'/'+String(cin.getFullYear()).slice(2);
+      const confDate = obj.data_conf || obj.checkin;
+      const confD = new Date(confDate);
+      const mesVenda = meses[confD.getMonth()]+'/'+String(confD.getFullYear()).slice(2);
+      const bruto = parseFloat(obj.bruto)||0;
+      const rec = { hotel:obj.hotel||'Olímpia Park Resort by Enjoy', tipo_uh:obj.tipo_uh||'', checkin:obj.checkin, checkout:obj.checkout, data_conf:confDate, status:'Importado', total_liq:0, bruto, med_bruto:bruto>0&&dias>0?bruto/dias:0, dias, mes_venda:mesVenda, ano_venda:mesVenda, mes_cin:mesCin, mes_cout:'', ano_cin:cin.getFullYear(), checkin_month:obj.checkin.slice(0,7), conf_month:confDate.slice(0,7), canal:obj.canal||'Direto', hospede:obj.hospede||obj.guest||'', res:1 };
+      ALL_DATA.push(rec);
+      EXTRA_DATA.push(rec);
+      count++;
+    });
+    saveData();
+    filteredData = [...ALL_DATA];
+    populateFilters();
+    renderAll();
+    document.getElementById('importMsg').innerHTML = `<span style="color:#d97706">⏳ Enviando ${count} reservas para a planilha…</span>`;
+    // Push all new rows to Sheets sequentially
+    let sent = 0;
+    const recs = EXTRA_DATA.slice(-count);
+    function pushNext(i) {
+      if (i >= recs.length) {
+        document.getElementById('importMsg').innerHTML = `<span style="color:#059669">✓ ${count} reservas salvas na planilha!</span>`;
+        syncFromSheets();
+        return;
+      }
+      const row = [recs[i].hotel,recs[i].tipo_uh,recs[i].checkin,recs[i].checkout,recs[i].data_conf,recs[i].hospede||'',recs[i].canal,recs[i].status||'Importado',recs[i].bruto,recs[i].dias,recs[i].mes_cin,recs[i].mes_venda,recs[i].ano_cin,recs[i].checkin_month,recs[i].conf_month,recs[i].res_num||''];
+      fetch(`${APPS_SCRIPT_URL}?action=append`,{method:'POST',body:JSON.stringify({row})})
+        .then(()=>pushNext(i+1)).catch(()=>pushNext(i+1));
+    }
+    pushNext(0);
+  };
+  reader.readAsText(file);
+}
+
+function exportCSV() {
+  const headers = ['hotel','tipo_uh','checkin','checkout','data_conf','canal','dias','bruto','mes_cin','mes_venda'];
+  const rows = [headers.join(',')];
+  filteredData.forEach(d => rows.push(headers.map(h => d[h]||'').join(',')));
+  const blob = new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'reservas_rm.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===================== METAS & PACE =====================
+const MONTH_NAMES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const MONTH_LABELS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+let METAS = JSON.parse(localStorage.getItem('rm_metas') || '{}');
+
+function saveMetas() {
+  // Collect all meta inputs
+  document.querySelectorAll('.meta-input').forEach(inp => {
+    const key = inp.dataset.key;
+    const val = parseFloat(inp.value.replace(/\./g,'').replace(',','.')) || 0;
+    if (val > 0) METAS[key] = val; else delete METAS[key];
+  });
+  localStorage.setItem('rm_metas', JSON.stringify(METAS));
+  document.getElementById('metasSaveMsg').innerHTML = '<span style="color:#059669">✓ Metas salvas!</span>';
+  setTimeout(() => { const el = document.getElementById('metasSaveMsg'); if(el) el.innerHTML=''; }, 2500);
+  renderPace();
+}
+
+function getMonthsWithData() {
+  const months = new Set();
+  ALL_DATA.forEach(d => { if (d.checkin_month) months.add(d.checkin_month); });
+  // Also add months with metas
+  Object.keys(METAS).forEach(k => months.add(k));
+  return [...months].sort();
+}
+
+function buildMetasGrid() {
+  const months = getMonthsWithData();
+  // Also show next 6 months always
+  const today = new Date();
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    months.push(key);
+  }
+  const unique = [...new Set(months)].sort();
+
+  document.getElementById('metasGrid').innerHTML = unique.map(key => {
+    const [y, m] = key.split('-');
+    const label = MONTH_LABELS[parseInt(m)-1] + ' ' + y;
+    const val = METAS[key] ? METAS[key].toLocaleString('pt-BR', {minimumFractionDigits:2}) : '';
+    return `<div style="background:#f8f9ff;border:1px solid var(--border);border-radius:8px;padding:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">${label}</div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <span style="font-size:12px;color:var(--muted)">R$</span>
+        <input class="meta-input" data-key="${key}" type="text" value="${val}" placeholder="0,00"
+          style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;width:100%;font-weight:600;"
+          oninput="this.value=this.value.replace(/[^0-9,.]/g,'')">
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function populatePaceMonthSelect() {
+  const sel = document.getElementById('paceMonthSel');
+  if (!sel) return;
+  const months = getMonthsWithData();
+  const today = new Date();
+  const curKey = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
+  sel.innerHTML = months.map(k => {
+    const [y,m] = k.split('-');
+    const label = MONTH_LABELS[parseInt(m)-1] + '/' + y;
+    return `<option value="${k}" ${k===curKey?'selected':''}>${label}</option>`;
+  }).join('');
+}
+
+function renderPace() {
+  buildMetasGrid();
+  populatePaceMonthSelect();
+  renderPaceCards();
+  renderPaceDetail();
+  renderPaceChart();
+}
+
+function renderPaceCards() {
+  const months = getMonthsWithData();
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const cards = months.map(key => {
+    const meta = METAS[key] || 0;
+    const [y,m] = key.split('-');
+    const label = MONTH_LABELS[parseInt(m)-1] + '/' + y;
+
+    const realized = ALL_DATA.filter(d => d.checkin_month === key).reduce((s,d) => s+(d.bruto||0), 0);
+    if (!meta && !realized) return null;
+
+    const lastDay = new Date(parseInt(y), parseInt(m), 0);
+    const firstDay = new Date(parseInt(y), parseInt(m)-1, 1);
+    const daysTotal = lastDay.getDate();
+    const isPast = lastDay < today;
+    const isCurrent = parseInt(y) === today.getFullYear() && parseInt(m)-1 === today.getMonth();
+
+    // Dias restantes = de HOJE até o último dia do mês (inclusive)
+    const daysLeft = today <= lastDay
+      ? Math.floor((lastDay - today) / 86400000) + 1
+      : 0;
+
+    const gap = meta - realized;
+    const pct = meta > 0 ? Math.min(realized / meta * 100, 100) : 0;
+    // Pace fixo: faltam / dias restantes de hoje até fim do mês
+    const paceNeeded = !isPast && daysLeft > 0 && gap > 0 ? gap / daysLeft : 0;
+    const barColor = pct >= 100 ? '#059669' : pct >= 70 ? '#d97706' : '#dc2626';
+
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:var(--shadow);position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${barColor}"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">${label}</div>
+          <div style="font-size:11px;color:${isCurrent?'#059669':'var(--muted)'};">${isCurrent?'● Mês atual':isPast?'Encerrado':'Futuro'}</div>
+        </div>
+        <div style="font-size:20px;font-weight:800;color:${barColor}">${fmt(pct,1)}%</div>
+      </div>
+      <div style="background:#f1f3f5;border-radius:6px;height:8px;margin-bottom:10px;overflow:hidden;">
+        <div style="background:${barColor};height:100%;width:${pct}%;border-radius:6px;transition:width 0.4s;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
+        <div><span style="color:var(--muted)">Realizado</span><br><strong style="font-size:13px">${realized>0?fmtR(realized):'—'}</strong></div>
+        <div><span style="color:var(--muted)">Meta</span><br><strong style="font-size:13px">${meta>0?fmtR(meta):'Sem meta'}</strong></div>
+        <div><span style="color:var(--muted)">Faltam</span><br><strong style="color:${gap>0?'#dc2626':'#059669'};font-size:13px">${meta>0?(gap>0?fmtR(gap):'✓ Atingida'):'—'}</strong></div>
+        <div><span style="color:var(--muted)">Pace/dia (fixo)</span><br><strong style="color:#d97706;font-size:13px">${paceNeeded>0?fmtR(paceNeeded):isPast&&gap>0?'⚠ Não ating.':isPast||gap<=0?'✓':'—'}</strong></div>
+      </div>
+      ${daysLeft > 0 && !isPast ? `<div style="margin-top:10px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:8px;">📅 ${daysLeft} dias restantes (hoje → ${String(lastDay.getDate()).padStart(2,'0')}/${m}/${y})</div>` : ''}
+    </div>`;
+  }).filter(Boolean);
+
+  document.getElementById('paceCards').innerHTML = cards.join('') || '<div style="color:var(--muted);padding:20px;font-size:13px;">Nenhum dado ou meta configurada ainda.</div>';
+}
+
+function renderPaceDetail() {
+  const sel = document.getElementById('paceMonthSel');
+  if (!sel) return;
+  const key = sel.value;
+  if (!key) return;
+
+  const [y, m] = key.split('-');
+  const meta = METAS[key] || 0;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const lastDay = new Date(parseInt(y), parseInt(m), 0);
+  const firstDay = new Date(parseInt(y), parseInt(m)-1, 1);
+  const daysTotal = lastDay.getDate();
+  const isPast = lastDay < today;
+
+  // Vendas acumuladas agrupadas por data de confirmação
+  const byConfDate = {};
+  ALL_DATA.filter(d => d.checkin_month === key && d.bruto > 0).forEach(d => {
+    const dc = d.data_conf || d.checkin;
+    byConfDate[dc] = (byConfDate[dc]||0) + (d.bruto||0);
+  });
+
+  // Total realizado até hoje
+  const totalRealized = ALL_DATA.filter(d => d.checkin_month === key).reduce((s,d)=>s+(d.bruto||0),0);
+  const gap = meta - totalRealized;
+
+  // Dias restantes de HOJE até o último dia do mês (fixo, calculado uma vez)
+  const daysLeft = today <= lastDay ? Math.floor((lastDay - today)/86400000) + 1 : 0;
+
+  // PACE FIXO = faltam / dias restantes (calculado uma vez, constante para todos os dias futuros)
+  const paceFixo = daysLeft > 0 && gap > 0 ? gap / daysLeft : 0;
+
+  const pct = meta > 0 ? Math.min(totalRealized/meta*100,100) : 0;
+  const barColor = pct >= 100 ? '#059669' : pct >= 70 ? '#d97706' : '#dc2626';
+
+  let html = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px;">
+      <div style="background:#eff6ff;border-radius:8px;padding:12px;border:1px solid #bfdbfe;">
+        <div style="font-size:11px;font-weight:700;color:#2563eb;text-transform:uppercase;">Meta do Mês</div>
+        <div style="font-size:20px;font-weight:800;margin-top:4px;">${meta>0?fmtR(meta):'Sem meta'}</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:8px;padding:12px;border:1px solid #bbf7d0;">
+        <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;">Realizado</div>
+        <div style="font-size:20px;font-weight:800;margin-top:4px;color:#059669">${totalRealized>0?fmtR(totalRealized):'R$ 0,00'}</div>
+      </div>
+      <div style="background:${gap>0?'#fff7ed':'#f0fdf4'};border-radius:8px;padding:12px;border:1px solid ${gap>0?'#fed7aa':'#bbf7d0'};">
+        <div style="font-size:11px;font-weight:700;color:${gap>0?'#d97706':'#059669'};text-transform:uppercase;">Faltam</div>
+        <div style="font-size:20px;font-weight:800;margin-top:4px;color:${gap>0?'#d97706':'#059669'}">${meta>0?(gap>0?fmtR(gap):'✓ Meta atingida!'):'—'}</div>
+      </div>
+      <div style="background:${paceFixo>0?'#fef2f2':'#f0fdf4'};border-radius:8px;padding:12px;border:1px solid ${paceFixo>0?'#fecaca':'#bbf7d0'};">
+        <div style="font-size:11px;font-weight:700;color:${paceFixo>0?'#dc2626':'#059669'};text-transform:uppercase;">Pace Necessário/dia</div>
+        <div style="font-size:22px;font-weight:800;margin-top:4px;color:${paceFixo>0?'#dc2626':'#059669'}">${paceFixo>0?fmtR(paceFixo):gap<=0?'✓ Ating.':'—'}</div>
+        ${daysLeft>0?`<div style="font-size:11px;color:var(--muted);margin-top:4px;">Base: ${daysLeft} dias restantes</div>`:''}
+      </div>
+      <div style="background:#f5f3ff;border-radius:8px;padding:12px;border:1px solid #c4b5fd;">
+        <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;">% da Meta</div>
+        <div style="font-size:20px;font-weight:800;margin-top:4px;color:${barColor}">${meta>0?fmt(pct,1)+'%':'—'}</div>
+        <div style="background:#e5e7eb;border-radius:4px;height:6px;margin-top:6px;overflow:hidden;"><div style="background:${barColor};height:100%;width:${pct}%;border-radius:4px;"></div></div>
+      </div>
+    </div>
+
+    ${paceFixo>0 ? `<div style="background:#fef9ec;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#92400e;">
+      💡 <strong>Como o pace é calculado:</strong> (Meta − Realizado) ÷ Dias restantes = 
+      <strong>${fmtR(gap)}</strong> ÷ <strong>${daysLeft} dias</strong> = <strong>${fmtR(paceFixo)}/dia</strong>
+    </div>` : ''}
+
+    <div style="overflow-x:auto;max-height:420px;overflow-y:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead style="position:sticky;top:0;z-index:1;">
+        <tr>
+          <th style="background:var(--bg);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Dia</th>
+          <th style="background:var(--bg);padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);">Vendas do Dia (R$)</th>
+          <th style="background:var(--bg);padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);">Acumulado (R$)</th>
+          <th style="background:var(--bg);padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);">% Meta</th>
+          <th style="background:var(--bg);padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:#dc2626;border-bottom:1px solid var(--border);">Pace Necessário/dia 🔒</th>
+          <th style="background:var(--bg);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);">Progresso</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let acc = 0;
+  for (let day = 1; day <= daysTotal; day++) {
+    const dt = `${y}-${m}-${String(day).padStart(2,'0')}`;
+    const dayDate = new Date(parseInt(y), parseInt(m)-1, day);
+    const isToday = dayDate.getTime() === today.getTime();
+    const isDayPast = dayDate < today;
+    const isFuture = dayDate > today;
+    const dowLabel = dayNames[dayDate.getDay()];
+    const dayRev = byConfDate[dt] || 0;
+    acc += dayRev;
+    const accPct = meta > 0 ? Math.min(acc/meta*100, 100) : 0;
+    const barW = Math.min(accPct, 100);
+    const bColor = accPct >= 100 ? '#059669' : accPct >= 70 ? '#d97706' : '#2563eb';
+    const rowBg = isToday ? '#fefce8' : '';
+
+    // Pace na coluna: para dias passados, mostra o realizado no dia; para hoje e futuros, mostra o pace fixo
+    const paceCell = isDayPast && !isToday
+      ? (dayRev > 0 ? `<span style="color:#6b7280;font-size:11px">${fmtR(dayRev)}</span>` : '<span style="color:#ccc">—</span>')
+      : paceFixo > 0
+        ? `<strong style="color:#dc2626">${fmtR(paceFixo)}</strong>`
+        : gap <= 0
+          ? '<span style="color:#059669;font-weight:700">✓ Meta atingida</span>'
+          : '—';
+
+    html += `<tr style="border-bottom:1px solid #f1f3f5;background:${rowBg}" onmouseover="this.style.background='#f8f9ff'" onmouseout="this.style.background='${rowBg}'">
+      <td style="padding:8px 12px;font-weight:${isToday?'700':'500'};white-space:nowrap;">
+        ${isToday?'<span style="background:#d97706;color:#fff;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700;margin-right:4px;">HOJE</span>':''}
+        ${String(day).padStart(2,'0')}/${m}/${y} <span style="color:var(--muted);font-size:11px">${dowLabel}</span>
+      </td>
+      <td style="padding:8px 12px;text-align:right;font-weight:${dayRev>0?'600':'400'};color:${dayRev>0?'#059669':'var(--muted)'};">
+        ${dayRev > 0 ? fmtR(dayRev) : '<span style="color:#ccc">—</span>'}
+      </td>
+      <td style="padding:8px 12px;text-align:right;font-weight:600;">${acc > 0 ? fmtR(acc) : '—'}</td>
+      <td style="padding:8px 12px;text-align:right;color:${bColor};font-weight:700;">${meta>0?fmt(accPct,1)+'%':'—'}</td>
+      <td style="padding:8px 12px;text-align:right;">${paceCell}</td>
+      <td style="padding:8px 12px;min-width:120px;">
+        <div style="background:#f1f3f5;border-radius:4px;height:8px;overflow:hidden;">
+          <div style="background:${bColor};height:100%;width:${barW}%;border-radius:4px;"></div>
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  html += `</tbody></table></div>`;
+  document.getElementById('paceDetailWrap').innerHTML = html;
+}
+
+function renderPaceChart() {
+  const months = getMonthsWithData();
+  const labels = months.map(k => { const [y,m]=k.split('-'); return MONTH_LABELS[parseInt(m)-1].slice(0,3)+'/'+y.slice(2); });
+  const realized = months.map(k => ALL_DATA.filter(d=>d.checkin_month===k).reduce((s,d)=>s+(d.bruto||0),0));
+  const metas = months.map(k => METAS[k] || null);
+
+  destroyChart('chartPace');
+  chartInstances['chartPace'] = new Chart(document.getElementById('chartPace'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Realizado (R$)', data: realized, backgroundColor: realized.map((r,i) => metas[i] && r >= metas[i] ? '#059669' : '#2563eb'), borderRadius: 4, order: 2 },
+        { label: 'Meta (R$)', data: metas, type: 'line', borderColor: '#dc2626', borderWidth: 2, borderDash: [6,3], pointRadius: 5, pointBackgroundColor: '#dc2626', fill: false, tension: 0, order: 1 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'top' } },
+      scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$'+v.toLocaleString('pt-BR') } } }
+    }
+  });
+}
+
+// ===================== TABS =====================
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['overview','pickup','pace','canais','tipos','reservas','inserir'][i] === tab));
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  renderAll();
+}
+
+function renderAll() {
+  const active = document.querySelector('.tab.active');
+  const idx = [...document.querySelectorAll('.tab')].indexOf(active);
+  const tabs = ['overview','pickup','pace','canais','tipos','reservas','inserir'];
+  const t = tabs[idx] || 'overview';
+  renderKPIs();
+  if (t === 'overview') renderOverviewCharts();
+  if (t === 'pickup') renderPickup();
+  if (t === 'pace') renderPace();
+  if (t === 'canais') renderCanais();
+  if (t === 'tipos') renderTipos();
+  if (t === 'reservas') renderReservas();
+}
+
+// ===================== INIT =====================
+// O BI aguarda login — não renderiza antes de autenticar
+populateFilters();
+// (renderAll é chamado após login bem-sucedido via syncFromSheets)
+</script>
+</body>
+</html>
